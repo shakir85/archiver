@@ -35,6 +35,8 @@ def notify(job_name: str, status: str) -> None:
         color = "0xe74c3c"
     if status == "failure":
         color = "0xe74c3c"
+    if status == "exited":
+        color = "0x1abc9c"
 
     try:
         webhook = DiscordWebhook(url=WEBHOOK)
@@ -54,6 +56,3 @@ def notify(job_name: str, status: str) -> None:
 
     except HTTPException as e:
         logging.error(f"HTTP Exception - check Discord webhook URL\n{e}\n")
-
-
-notify(job_name="foo", status="success")
