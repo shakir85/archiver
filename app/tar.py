@@ -7,7 +7,7 @@ from datetime import datetime
 from subprocess import Popen, PIPE, STDOUT
 
 
-LOG_DIR = f"{os.getenv('HOME')}/syncdir"
+LOG_DIR = f"{os.getenv('HOME')}/archiver"
 
 
 def set_logging():
@@ -15,7 +15,7 @@ def set_logging():
         os.mkdir(path=LOG_DIR, mode=0o0777)
 
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s',
-                        filename=f"{LOG_DIR}/syncdir.log", filemode="a")
+                        filename=f"{LOG_DIR}/archiver.log", filemode="a")
 
 
 def compress_to_dest(src: str, dst: str, job_name: str, dry_run=False) -> None:
@@ -29,15 +29,16 @@ def compress_to_dest(src: str, dst: str, job_name: str, dry_run=False) -> None:
 
     # dst = /mediaserver/config
     tar_file = f"{dst}/{job_name}-{today}-backup.tar.gz"
+
+    if os.path.isfile(tar_file):
+        logging.warn("An archive with the same timestamp exists, Exiting...")
+        notify(job_name=job_name, status="exited")
+        sys.exit(0)
+
     if not dry_run:
         try:
             tar = f"tar czf {tar_file} --absolute-names -C {src} ."
             process = Popen(tar, shell=True, stdout=PIPE, stderr=STDOUT)
-
-            if os.path.isfile(tar_file):
-                logging.info("Archive with the same timestamp exists, Exiting...")
-                notify(job_name=job_name, status="exited")
-                sys.exit(0)
 
             with process.stdout:
                 for i in iter(process.stdout.readline, b''):
@@ -48,7 +49,7 @@ def compress_to_dest(src: str, dst: str, job_name: str, dry_run=False) -> None:
                 notify(job_name=job_name, status="success")
 
         except OSError as e:
-            logging.error(f"Compress job: [{job_name}] failed\n{e}")
+            logging.error(f"Job: [{job_name}] failed\n{e}")
     else:
         print("[dry_run] Attempting to compress:\n"
               f"[dry_run] directory: {src}\n"
